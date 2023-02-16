@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no" name="viewport">
+    <title><%= project_name %> | Sign-up</title>
+    <link rel="stylesheet" href="css/bootstrap_and _fontawesome.min.css">
+    <link rel="stylesheet" href="css/auth_style.css">
+  </head>
+<body>
+    <div class="loader"></div>
+    <div id="app">
+        <section class="section">
+            <div class="container mt-5">
+                <div class="row">
+                    <div class="col-12 col-sm-8 offset-sm-2 col-md-6 offset-md-3 col-lg-6 offset-lg-3 col-xl-4 offset-xl-4">
+                        <div class="card card-primary">
+                            <div class="card-header">
+                                <h4>Register</h4>
+                            </div>
+                            <div class="card-body">
+                                <form class="needs-validation">
+                                    <div class="form-group">
+                                        <label for="surname">Surname</label>
+                                        <input id="surname" type="text" class="form-control" name="surname" tabindex="1" required autocomplete autofocus>
+                                        <div class="surname invalid-feedback"></div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="first_name">First name</label>
+                                        <input id="first_name" type="text" class="form-control" name="first_name" tabindex="1" required autocomplete>
+                                        <div class="first_name invalid-feedback"></div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="email">Email</label>
+                                        <input id="email" type="email" class="form-control" name="email" tabindex="1" required autocomplete>
+                                        <div class="email invalid-feedback"></div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="password">Password</label>
+                                        <input id="password" type="password" class="form-control" name="password" tabindex="2" required>
+                                        <div class="password invalid-feedback"></div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="confirm_password">Confirm Password</label>
+                                        <input id="confirm_password" type="password" class="form-control" name="confirm_password" tabindex="2" required>
+                                        <div class="confirm_password invalid-feedback"></div>
+                                    </div>
+                                    <div class="form-group">
+                                        <button type="submit" class="btn btn-primary btn-lg btn-block" tabindex="4">Register</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="mt-5 text-muted text-center">
+                            Already have an account? <a href="/login">Login</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    
+    <script src="js/jquery.min.js"></script>
+    <script src="js/localStorage.js"></script>
+    <script>
+        $(window).on("load", function () {
+            $(".loader").fadeOut("slow");
+        });
+
+        const form = document.querySelector('form')
+        const surnameErr = document.querySelector('.surname.invalid-feedback')
+        const otherNamesErr = document.querySelector('.first_name.invalid-feedback')
+        const emailErr = document.querySelector('.email.invalid-feedback')
+        const passwordErr = document.querySelector('.password.invalid-feedback')
+        const confirmPasswordErr = document.querySelector('.confirm_password.invalid-feedback')
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            document.querySelectorAll('.invalid-feedback').textContent = ''
+
+            const req_body = JSON.stringify({ 
+                last_name: form.surname.value,
+                first_name: form.first_name.value,
+                email: form.email.value,
+                password: form.password.value
+            })
+
+            if (form.confirm_password.value != form.password.value) {
+                confirmPasswordErr.textContent = 'Confirm Password did not match Password'
+                e.stopPropagation()
+            }
+            else{
+                try {
+                    const res = await fetch('/api/v1/auth/register', {
+                        method: 'POST',
+                        body: req_body,
+                        headers: { 'Content-Type':'application/json'}
+                    })
+
+                    const data = await res.json();
+                    if (data.user?._id) {
+                        const saveToken = addToLocal('token', data.token)
+                        const saveUser = addToLocal('user', data.user)
+                        location.assign('/dashboard')
+                    }
+                    if (data.error) {
+                        surnameErr.textContent = data.error.surname
+                        otherNamesErr.textContent = data.error.other_names
+                        emailErr.textContent = data.error.email
+                        passwordErr.textContent = data.error.password
+                        confirmPasswordErr.textContent = ''
+                    }
+                } catch (err) {
+                    console.log(err);
+                }
+            }
+        })
+    </script>
+</body>
+</html>

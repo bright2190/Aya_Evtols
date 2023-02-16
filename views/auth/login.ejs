@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no" name="viewport">
+    <title><%= project_name %> | Login</title>
+    <link rel="stylesheet" href="css/bootstrap_and _fontawesome.min.css">
+    <link rel="stylesheet" href="css/auth_style.css">
+  </head>
+<body>
+    <div class="loader"></div>
+    <div id="app">
+        <section class="section">
+            <div class="container mt-5">
+                <div class="row">
+                    <div class="col-12 col-sm-8 offset-sm-2 col-md-6 offset-md-3 col-lg-6 offset-lg-3 col-xl-4 offset-xl-4">
+                        <div class="card card-primary">
+                            <div class="card-header">
+                               <h4><%= project_name %> - Login</h4>
+                            </div>
+                            <div class="card-body">
+                                <form class="needs-validation">
+                                    <div class="form-group">
+                                        <label for="email">Email</label>
+                                        <input id="email" type="email" class="form-control" name="email" tabindex="1" required autocomplete autofocus>
+                                        <div class="email invalid-feedback"></div>
+                                    </div>
+                                    <div class="form-group">
+                                        <div class="d-block">
+                                            <label for="password" class="control-label">Password</label>
+                                            <div class="float-right">
+                                                <a href="/forgot-password" class="text-small">
+                                                    Forgot Password?
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <input id="password" type="password" class="form-control" name="password" tabindex="2" required>
+                                        <div class="password invalid-feedback"></div>
+                                    </div>
+                                    <div class="error bg-danger text-white p-2 text-center d-none rounded mb-4"></div>
+                                    <div class="form-group">
+                                        <button type="submit" class="btn btn-primary btn-lg btn-block" tabindex="4">Login</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="mt-5 text-muted text-center">
+                            Don't have an account? <a href="/signup">Create Account</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+    
+    <script src="js/jquery.min.js"></script>
+    <script src="js/localStorage.js"></script>
+    <script>
+        $(window).on("load", function () {
+            $(".loader").fadeOut("slow");
+        });
+
+        const form = document.querySelector('form')
+        const emailErr = document.querySelector('.email.invalid-feedback')
+        const passwordErr = document.querySelector('.password.invalid-feedback')
+        const errorDiv = document.querySelector('.error')
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorDiv.classList.add('d-none')
+
+            emailErr.textContent = ''
+            passwordErr.textContent = ''
+
+            const req_body = JSON.stringify({
+                email: form.email.value,
+                password: form.password.value
+            })
+            
+            try {
+                const res = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    body: req_body,
+                    headers: { 'Content-Type':'application/json'}
+                })
+
+                const data = await res.json();
+                if (data.user?._id) {
+                    const saveToken = addToLocal('token', data.token)
+                    const saveUser = addToLocal('user', JSON.stringify(data.user))
+                    location.assign('/dashboard')
+                }
+                if (data.error) {
+                    errorDiv.classList.remove('d-none')
+                    errorDiv.textContent = data.error
+                }
+            } catch (err) {
+                console.log(err);
+            }
+        })
+            
+    </script>
+</body>
+</html>

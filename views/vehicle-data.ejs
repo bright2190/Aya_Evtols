@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en"  data-bs-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" href="/css/bootstrap5.3.min.css">
+  <link rel="stylesheet" href="/css/dashboard_style.css" />
+  <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css" />
+
+  <title>Manage eVTOLs - <%= project_name %></title>
+</head>
+<body>
+  <%- include('./partials/__side_navbar.ejs') %>
+
+  <section class="dashboard">
+    <%- include('./partials/__topbar.ejs') %>
+
+    <div class="dash-content">
+      <div class="mt-5 mb-5">
+        <div class="title">
+          <i class="uil uil-plane"></i>
+          <span class="text" id="vehicle-title">Manage eVTOL <%= vehicle.serial_number %></span>
+        </div>
+        <div class="float-end">
+          <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" data-bs-toggle="modal" data-bs-target="#addVehicleModal">
+              <i class="uil uil-edit"></i> Update eVTOL
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="container">
+        <div class="row g-3" id="vehicleList">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="modal fade" id="addVehicleModal" tabindex="-1" aria-labelledby="addVehicleModal" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="staticBackdropLabel">Register eVTOL</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form class="needs-validation" id="createBoard">
+            <div class="form-group mb-4">
+              <label for="n_serial_number">Serial Number</label>
+              <input id="n_serial_number" type="text" maxlength="100" class="form-control form-control-lg" name="n_serial_number" tabindex="1" required autofocus>
+              <div class="n_serial_number invalid-feedback"></div>
+            </div>
+            <div class="form-group mb-4">
+              <label for="n_model">Model</label>
+              <select name="n_model" id="n_model" class="form-control form-control-lg" tabindex="1" required>
+                <% Object.keys(models).map((model) => { %>
+                  <option value="<%= model.toLowerCase() %>"><%= model %></option>
+                <% }) %>
+              </select>
+              <div class="n_model invalid-feedback"></div>
+            </div>
+            <div class="form-group mb-4">
+              <label for="n_max_weight">Max Weight (gram)</label>
+              <input id="n_max_weight" type="number" max="500" min="0" class="form-control form-control-lg" name="n_max_weight" tabindex="1" required>
+              <div class="n_max_weight invalid-feedback"></div>
+            </div>
+            <div class="form-group mb-4">
+              <label for="n_battery_capacity">Battery Capacity (%)</label>
+              <input id="n_battery_capacity" type="number" max="100" min="0" class="form-control form-control-lg" name="n_battery_capacity" tabindex="1" required>
+              <div class="n_battery_capacity invalid-feedback"></div>
+            </div>
+            <div class="form-group mb-4">
+              <label for="n_color">Color</label>
+              <input id="n_color" type="color" class="form-control form-control-lg" name="n_color" tabindex="1" value="#a1becd">
+              <div class="n_color invalid-feedback"></div>
+            </div>
+            <div class="nError bg-danger text-white p-2 text-center rounded mb-4 d-none"></div>
+            <div class="nSuccess bg-success text-white p-2 text-center rounded mb-4 d-none"></div>
+            <div class="form-group">
+              <button type="submit" class="btn btn-primary btn-lg btn-block" tabindex="4">Register</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/bootstrap5.3.bundle.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/localStorage.js"></script>
+  <script>
+    const form = document.querySelector('form')
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorDiv = document.querySelector('.nError')
+      const successDiv = document.querySelector('.nSuccess')
+      errorDiv.classList.add('d-none')
+      successDiv.classList.add('d-none')
+      
+      errorDiv.textContent = ''
+      successDiv.textContent = ''
+
+      const req_body = JSON.stringify({ 
+          serial_number: form.n_serial_number.value,
+          model: form.n_model.value,
+          max_weight: form.n_max_weight.value,
+          battery_capacity: form.n_battery_capacity.value,
+          color: form.n_color.value
+      })
+
+      try {
+        const res = await fetch('/api/v1/vehicle', {
+          method: 'POST',
+          body: req_body,
+          headers: { 
+            'Content-Type':'application/json',
+            'Authorization':`Bearer ${readFromLocal('token')}`
+          }
+        })
+        interceptResponseCode(res);
+
+        const data = await res.json();
+        console.log(data)
+        if (data.vehicle?._id) {
+          let item = `<div class="col-4">
+                      <div class="p-3 rounded-4 vehicle-item" style="background-color: ${data.vehicle.color};">
+                        <a href="/evtol/${data.vehicle._id}">
+                          <div>
+                            <div class="text-center mb-4">
+                              <span class="vehicle-title">${data.vehicle.serial_number}</span>
+                            </div>
+                            <p class="text-ash p-top">Model: ${data.vehicle.model}</p>
+                            <p class="text-ash p-top">Status: ${data.vehicle.current_state}</p>
+                            <p class="text-ash p-top">Battery Capacity: ${data.vehicle.battery_capacity}%</p>
+                          </div>
+                        </a>
+                      </div>
+                    </div>`
+          
+          document.getElementById('vehicleList').innerHTML += item
+
+          successDiv.classList.remove('d-none')
+          successDiv.textContent = `CREATED: ${data.vehicle.serial_number}`
+          setTimeout(() => {
+            successDiv.classList.add('d-none')
+          }, 2000);
+
+          form.n_serial_number.value = ''
+          form.n_model.value = ''
+          form.n_max_weight.value = ''
+          form.n_battery_capacity.value = ''
+          form.n_color.value = ''
+        }
+        if (data.error) {
+          errorDiv.classList.remove('d-none')
+          console.log(data.message)
+          errorDiv.textContent = `ERROR: ${data.error.message}`
+          setTimeout(() => {
+            errorDiv.classList.add('d-none')
+          }, 2000);
+        }
+      } catch (err) {
+          console.log(err);
+      }
+    })
+
+  </script>
+</body>
+</html>
